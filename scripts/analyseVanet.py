@@ -27,7 +27,7 @@ stepEdgesCount = 0
 def populateMacMap(elem, args={}):
 	#print line	
 	global macMap
-	elem = line.split(' ')
+	elem = line.split(',')
 	if len(elem) > 5:
 		vehicleId = str(elem[2])
 		vehicleMac = str(elem[5])
@@ -75,7 +75,7 @@ def processLine(line, args={}):
 	global stepEdgesCount
 
 	#1 21631 21 23094 21968.5 00:00:00:00:00:16 2 00:00:00:00:00:20,1 00:00:00:00:01:f7,1 
-	elem = line.split(' ')
+	elem = line.split(',')
 	step = float(elem[0])
 	time = float(elem[1])
 	vehicleId = str(elem[2])

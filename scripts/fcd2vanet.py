@@ -120,6 +120,7 @@ def removekey(d, key):
 
 def fastIter(context, processElement, args={}):
 	step = 0
+	print context
 	for event, elem in context:
 		args['step'] = step
 		doProcess = processElement(elem, args)

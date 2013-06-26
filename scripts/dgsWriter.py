@@ -40,9 +40,9 @@ class DGSWriter:
 		return
 
 	def writeChangeEdge(self, edgeId, edgeValue):
-		self.out.write("cn "+str(edgeId)+' '+str(edgeValue)+'\n')
+		self.out.write("ce \""+str(edgeId)+' '+str(edgeValue)+'\n')
 		return
 
 	def writeDelEdge(self, edgeId):
-		self.out.write("dn "+str(edgeId)+'\n')
+		self.out.write("de \""+str(edgeId)+"\"\n")
 		return

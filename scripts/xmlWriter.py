@@ -10,9 +10,10 @@ class XMLWriter:
 		self.g = XMLGenerator(self.out, 'utf-8')
 		return
 
-	def writeHeader(self):	
+	def writeHeader(self, header):	
 		#self.out.write("""<?xml version="1.0" encoding="UTF-8"?>""")
-		self.out.write("""<gexf version="1.2" xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd">""")
+		#self.out.write("""<gexf version="1.2" xmlns="http://www.gexf.net/1.2draft" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.gexf.net/1.2draft http://www.gexf.net/1.2draft/gexf.xsd">""")
+		self.out.write(header)
 		return
 
 	def startTag(self, name, attr={}, body=None, namespace=None):

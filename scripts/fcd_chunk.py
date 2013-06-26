@@ -137,7 +137,7 @@ if len(probesFile) > 0:
 	inputFile = probesFile
 if len(chunkOutput) > 0:
 	xmlWriter = XMLWriter(chunkOutput)
-	xmlWriter.writeHeader()
+	xmlWriter.writeHeader("""<?xml version="1.0" encoding="UTF-8"?>""")
 	xmlWriter.startTag(args['root'])
 
 args["startTime"] = startTime

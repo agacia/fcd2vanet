@@ -30,6 +30,7 @@ edgesStepCount = 0
 edgesCount = 0
 nodesCount = 0
 nodesStepCount = 0
+deletedNodesCount = 0
 addedNodsCount = 0
 edgesToAdd = []
 edgesToRemove = []
@@ -58,6 +59,7 @@ def processLine(line, args={}):
 	global addedNodsCount
 	global edgesToAdd
 	global edgesToRemove
+	global deletedNodesCount
 
 	#1 21631 21 23094 21968.5 00:00:00:00:00:16 2 00:00:00:00:00:20,1 00:00:00:00:01:f7,1 
 	elem = line.split(',')
@@ -79,19 +81,25 @@ def processLine(line, args={}):
 	# populate array removedVehicles with vehicles who were in the previous step but are not in the step any more
 	# write del in dgs
 	if step != currentStep:	
-		print "currentStep: {},  nodesStepCount: {}, edgesStepCount: {}, addedNodsCount: {} ".format(currentStep, nodesStepCount, edgesStepCount, addedNodsCount)
+		print "currentStep: {}, nodes: {}, addedNodes: {} , deletedNodes: {}, edges: {}, addedEdges: {}, deletedEdges: {}".format(currentStep, nodesStepCount, addedNodsCount, deletedNodesCount, edgesStepCount, len(edgesToAdd), len(edgesToRemove))
 		currentStep = step
 		edgesCount += edgesStepCount
 		nodesCount += nodesStepCount
 		edgesStepCount = 0
 		nodesStepCount = 0
 		addedNodsCount = 0
+		deletedNodsCount = 0
+
 		for edge in edgesToAdd:
 			dgsWriter.writeAddEdge(edge[0], edge[1], edge[2])
 		for edgeId in edgesToRemove:
 			dgsWriter.writeDelEdge(edgeId)
+		edgesToAdd = []
+		edgesToRemove = []
+
 		dgsWriter.writeStep(step)
 		if len(stepVehicles) > 0:
+
 			removedVehicles = []
 			for vehicle in runningVehicles:
 				if not vehicle in stepVehicles :
@@ -101,7 +109,8 @@ def processLine(line, args={}):
 				if vehicle in edges:
 					removekey(edges, vehicle)
 				dgsWriter.writeDelNode(vehicle)
-				print "deleting node {}".format(vehicle) 
+				# print "deleting node {}".format(vehicle) 
+				deletedNodesCount += 1
 				nodesStepCount -= 1
 		stepVehicles = []
 
@@ -124,6 +133,9 @@ def processLine(line, args={}):
 		if vehicleId not in edges:
 			edges[vehicleId] = []
 		# add / modify
+
+		# if vehicleId == "0":
+			# print "step {}, vehicle {}. existing neighbors: {},\n step neighbors: {}".format(currentStep, vehicleId, edges[vehicleId], vehicleEdges )
 		for neighborId in vehicleEdges:
 			edgesStepCount += 1
 			# if new edge
@@ -131,16 +143,21 @@ def processLine(line, args={}):
 				edges[vehicleId].append(neighborId)
 				edgeId = (vehicleId+'-'+neighborId)
 				edgesToAdd.append([edgeId, vehicleId, neighborId])
+				# if vehicleId == "0" and neighborId == "75":
+				# 	print "adding {}".format(edgeId)
 				# dgsWriter.writeAddEdge(edgeId, vehicleId, neighborId)
 			# if edge changed - we do not handle it now
 			#else:
-		# remove 
-		edgesToRemove = []
-		for edge in edges[vehicleId]:
+		# remove
+		neighborsToRemove = [] 
+		for neighborId in edges[vehicleId]:
 			if not neighborId in vehicleEdges:
-				print 'removing edge '+neighborId
+				# print 'removing edge '+neighborId
 				# dgsWriter.writeDelEdge(vehicleId+'-'+neighborId)
-				edgesToRemove(vehicleId+'-'+neighborId)
+				edgesToRemove.append(vehicleId+'-'+neighborId)
+				neighborsToRemove.append(neighborId)
+		for neighborId in neighborsToRemove:
+			edges[vehicleId].remove(neighborId)
 		
 	return 0
 
