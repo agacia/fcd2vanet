@@ -1,0 +1,15 @@
+*~
+.metadata/
+.settings/
+autom4te.cache
+.cproject
+.project
+*.creator*
+config.guess
+config.log
+config.status
+config.sub
+configure
+*.lo
+*.o
+.DS_Store

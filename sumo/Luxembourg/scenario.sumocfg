@@ -4,14 +4,15 @@
 	<net-file value="Luxembourg.net.xml"/>
         <route-files value="Luxembourg.rou.xml"/>
 	<additional-files value="additional.add.xml"/>
+
     </files>
 
-<output> 
-   <!--<netstate-dump value="neststate.xml" />-->
-</output>
+<!--<output> 
+   <netstate-dump value="neststate.xml" />
+</output>-->
 
     <time>
-      <begin value="21200" /> <!-- 25200 = 7am - 1000 s for warming up -->
+      <begin value="20600" /> <!-- 21600 = 6am - 1000 s for warming up -->
       <end value="28800" /> <!-- 28800 = 8am -->
    </time>
 

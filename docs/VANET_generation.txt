@@ -1,0 +1,47 @@
+You can generate VANETs Distance-based 
+
+python /Users/agatagrzybek/GraphStreamWorkspace/fcd2vanet/scripts/fcd2vanet.py  --fcdFile /Users/agatagrzybek/PhD/workshop/sumo_scenarios/Luxembourg_7-8/sumoOutput/chunkFCD.xml --vanetFile /Users/agatagrzybek/PhD/workshop/sumo_scenarios/Luxembourg_7-8/sumoOutput/vanet300.txt --startTime 21630 --endTime 21640 --stepSize 1 --radious 300
+
+
+Vehicles in VANETs will use an on board equipment (OBE) with a wireless communication interface.
+OBEs will use a special wireless protocol developed to work in vehicular environments: dedicated short range communication (DSRC).
+
+To determine if vehicles are in a communication range, a network simulator can be used to reproduce a realistic networking behaviour.  
+
+We use NS3, an open source network simulator, to present vehicles from SUMO as moving wireless devices and determine which vehicles are in communication range. 
+
+(1) Input file
+
+Export the fcd.xml file to an NS3 mobility file (.tlc) using a traceExporter SUMO tool:
+
+python [sumo-path]/tools/bin/traceExporter.py \
+--fcd-input data/Luxembourg/chunkFCD.xml \
+--ns2config-output config.tcl \
+--ns2activity-output activity.tcl \
+--ns2mobility-output mobility.tcl \
+--penetration 1 \
+--begin 21630 \
+--end 21640
+
+Will generate an input file for NS3 (mobility.tcl) from FCD file (chunkFCD.xml) for a specified time period.
+
+(2) Install NS3
+
+See http://www.nsnam.org/wiki/index.php/Installation
+
+(3) Run ns2-mobility-trace application
+
+- Copy our files to "ns3/scratch" and "ns3/src" folders
+
+- Build NS3 
+./waf
+
+- Run the application ns2-mobility-trace
+./waf --run "scratch/ns2-mobility-trace \
+--traceFile=data/Luxembourg/mobility.tcl \
+--logFile=data/Luxembourg/main-ns2-mob.log \
+--duration=10 "
+
+The application will run simulation with nodes moving as indicated in mobility file (mobility.tcl) and broadcasting periodic messages using DSRC 802.11p wifi standard.
+
+Output file vanet.csv contains lists of nodes and its neighbours at every simulation step.

@@ -119,12 +119,7 @@ void PrintNodeDetails(NodeContainer node_container, int nodeId) {
 		position.x = model->GetPosition ().x;
 		position.y = model->GetPosition ().y;
 		position.z = model->GetPosition ().z;
-//		Ptr<NetDevice> dev = node->GetDevice(0);
-//		Ptr<WifiNetDevice> wifidev = DynamicCast<WifiNetDevice>(dev);
-//		Ptr<WifiMac> mac = wifidev->GetMac();
 		Ptr<BeaconingAdhocWifiMac> beaconingmac = node->GetObject<BeaconingAdhocWifiMac>();
-//		Ptr<BeaconingAdhocWifiMac> beaconingmac = DynamicCast<BeaconingAdhocWifiMac>(mac);
-
 		if (beaconingmac->GetBeaconGeneration()) {
 			outfile << Simulator::Now().GetSeconds() << " " << currentTime << " " << node->GetId() << " " << beaconingmac->GetAddress() << " " << position.x << " " << position.y << " " << node->GetDevice(0)->GetAddress() << " ";
 			outfile << beaconingmac->PrintNeighbors();
@@ -187,8 +182,8 @@ void InitializeNetwork() {
 	mac = NqosWifiMacHelper::Default();
 	mac.SetType(MAC_TYPE);
 //	// to re-build BeaconingAdhocWifiMac
-//    BeaconingAdhocWifiMac * bm = new BeaconingAdhocWifiMac();
-//    bm = NULL;
+    BeaconingAdhocWifiMac * bm = new BeaconingAdhocWifiMac();
+    bm = NULL;
 	cout << "Network initialized. " << endl;
 }
 
@@ -200,7 +195,7 @@ void RemoveVehicles(std::vector<string> toRemove, std::vector<string> & vehicles
 		vector<string>::iterator it;
 		it = std::find(vehicles.begin(), vehicles.end(), (*i));
 		if (it != vehicles.end()) {
-//			cout << "removing from running vehicles: " << *it << endl;
+			cout << "removing from running vehicles: " << *it << endl;
 			vehicles.erase(it);
 		}
 	}
@@ -308,6 +303,7 @@ void CreateNodes(double time) {
 		Names::Add("Nodes", strId, node);
 	}
 
+	int startedMoving = 0;
 	std::vector<int> movingVehicles = ns2MobilityHelper.GetMovedVehicles(time);
 	// add to running vehicles those who are moving for the first time
 	if (runningVehicles.size() == 0 && movingVehicles.size() > 0) {
@@ -318,7 +314,7 @@ void CreateNodes(double time) {
 			runningVehicles.push_back(strId);
 		}
 	}
-	// modify running nodes by adding those who are running at the current step
+	// modify running nodes by adding those who started to move at the current step
 	else if (runningVehicles.size() > 0 && movingVehicles.size() > 0) {
 		vector<string>::iterator isRunning;
 		for (vector<int>::iterator it = movingVehicles.begin(); it != movingVehicles.end(); ++it) {
@@ -328,16 +324,18 @@ void CreateNodes(double time) {
 			isRunning = std::find(runningVehicles.begin(), runningVehicles.end(), strId);
 			if (isRunning == runningVehicles.end()) {
 				runningVehicles.push_back(strId);
+				startedMoving ++;
+				cout << "started moving " << strId << endl;
 			}
 		}
 	}
 
 	SwitchOnBeaconing(runningVehicles);
 
-	vector<string> toRemove =SwitchOffArrivedNodes(movingVehicles, runningVehicles);
+	vector<string> toRemove = SwitchOffArrivedNodes(movingVehicles, runningVehicles);
 	RemoveVehicles(toRemove, runningVehicles);
 
-	cout << "CreateNodes for time " << time << ", movedVehicles " << movingVehicles.size() << ", runningVehicles: " << runningVehicles.size() << ", put to node_container: " << node_container.GetN() << endl;
+	cout << "Time " << time << " created to node_container: " << node_container.GetN() << ", movingVehicles " << movingVehicles.size() << ", startedMoving: " << startedMoving << ", runningVehicles: " << runningVehicles.size() << endl;
 	PrintVehicles(runningVehicles);
 
 }
@@ -375,48 +373,49 @@ int main (int argc, char *argv[])
   // Parse command line attribute
   CommandLine cmd;
   cmd.AddValue ("traceFile", "Ns2 movement trace file", params["traceFile"]);
-  cmd.AddValue ("nodeNum", "Number of nodes", params["nodeNum"]);
+//  cmd.AddValue ("nodeNum", "Number of nodes", params["nodeNum"]);
   cmd.AddValue ("duration", "Duration of Simulation", params["duration"]);
   cmd.AddValue ("logFile", "Log file", params["logFile"]);
+  cmd.AddValue ("outFile", "Ouput file", params["outFile"]);
   cmd.Parse (argc,argv);
 
-  params["traceFile"] = "mobility.tcl";
-  params["dir"] = "./";
-  params["logFile"] = "main-ns2-mob.log";
   params["animFile"] = "animation.xml";
-  params["gexfFile"] = "graph.gexf";
-  params["outFile"] = "out.txt";
-  params["nodesFile"] = "nodes.txt";
-  params["edgesFile"] = "edges.txt";
-//  params["nodeNum"] = "993";
-  params["duration"] = "11";
-  params["dir"] = "/Users/agatagrzybek/PhD/workshop/graphs/LuxembourgTraces/FCD/";
-  params["traceFile"] = params["dir"] + params["traceFile"];
-  params["logFile"] = params["dir"] + params["logFile"];
-  params["animFile"] = params["dir"] + params["animFile"];
-  params["outFile"] = params["dir"] + params["outFile"];
-  params["nodesFile"] = params["dir"] + params["nodesFile"];
-  params["edgesFile"] = params["dir"] + params["edgesFile"];
 
+  if (params["traceFile"].empty () && params["outFile"].empty ()) {
+	  params["traceFile"] = "mobility.tcl";
+	  params["logFile"] = "main-ns2-mob.log";
+	  params["outFile"] = "out11s.txt";
+	  params["duration"] = "11";
+	  params["dir"] = "/Users/agatagrzybek/PhD/workshop/sumo_scenarios/Luxembourg_7-8/sumoOutput/";
+	  params["traceFile"] = params["dir"] + params["traceFile"];
+	  params["logFile"] = params["dir"] + params["logFile"];
+	  params["animFile"] = params["dir"] + params["animFile"];
+	  params["outFile"] = params["dir"] + params["outFile"];
+  }
 
   // Check command line arguments
   //int nodeNum = atoi(params["nodeNum"].c_str());
   duration = atof(params["duration"].c_str());
 
-  if (params["traceFile"].empty () || duration <= 0 || params["logFile"].empty ())
+  if (params["traceFile"].empty () || duration <= 0 || params["logFile"].empty () || params["outFile"].empty ())
     {
       std::cerr << "Usage of " << argv[0] << " :\n\n"
       "./waf --run \"ns2-mobility-trace"
       " --traceFile=src/mobility/examples/default.ns_movements"
-      " --nodeNum=2 --duration=100.0 --logFile=ns2-mob.log\" \n\n"
+      " --duration=100.0 --logFile=ns2-mob.log --outFile=out.txt\" \n\n"
       "NOTE: ns2-traces-file could be an absolute or relative path. You could use the file default.ns_movements\n"
       "      included in the same directory of this example file.\n\n"
-      "NOTE 2: Number of nodes present in the trace file must match with the command line argument and must\n"
-      "        be a positive number. Note that you must know it before to be able to load it.\n\n"
       "NOTE 3: Duration must be a positive number. Note that you must know it before to be able to load it.\n\n";
 
       return 0;
     }
+
+
+	cout << "Simulation settings: " << endl;
+	cout << "Trace file:\t" << params["traceFile"] << endl;
+	cout << "Out file:\t" << params["outFile"] << endl;
+	cout << "Log file:\t" << params["logFile"] << endl;
+	cout << "Duration:\t" << params["duration"] << endl;
 
 	outfile.open (params["outFile"].c_str());
 

@@ -1,0 +1,58 @@
+SUMO can generate different output files:
+
+1) floating car data (FCD) - positions of all vehicles at every simulation step
+http://sumo.sourceforge.net/doc/current/docs/userdoc/Simulation/Output/FCDOutput.html
+
+Calling from command line:
+sumo -c scenario.sumocfg  --fcd-output "fcd.xml"
+
+Output:
+time_step	 (simulation) seconds	 The time step described by the values within this timestep-element
+id	 id	 The id of the vehicle
+type	 id	 The name of the vehicle type
+speed	 m/s	 The speed of the vehicle
+angle	 degree	 The angle of the vehicle
+pos_x	 ---	 The absolut X coordinate of the vehicle. The value depends on the given geographic projection
+pos_y	 ---	 The absolut Y coordinate of the vehicle. The value depends on the given geographic projection
+
+2) probe data of a specific vehicle type - positions of selected vehicles types (or all) with the specified frequency
+http://sumo.sourceforge.net/doc/current/docs/userdoc/Simulation/Output/VTypeProbe.html
+
+Calling from an additional config file "additional.add.xml":
+<additional>
+    <vTypeProbe id="probe1" type="DEFAULT_VEHTYPE" freq="1" file="output.xml"/>
+</additional>
+
+timestep@time	 (simulation) seconds	 The time this information describes
+timestep@id	 id	 The id of the detector
+vtype	 id	 The id of the vehicle type observed by this detector
+vehicle@id	 (vehicle) id	 The id of the described vehicle
+lane	 (lane) id	 The id of the lane the vehicle was on.
+pos	 m	 The position of the vehicle on lane
+x	 m	 The x-position of the vehicle within the net
+y	 m	 The y-position of the vehicle within the net
+lat	 degrees*100,000	 The lat-position of the vehicle within the net
+lon	 degrees*100,000	 The lon-position of the vehicle within the net
+speed	 m/s	 The speed of the vehicle within the time step.
+
+3) netstate - the total status of the simulation (edges and vehicles on edges at every simulation step)
+http://sumo.sourceforge.net/doc/current/docs/userdoc/Simulation/Output/RawDump.html
+
+Calling from config file:
+<output> 
+   <netstate-dump value="<FILE>" />
+</output>
+
+Output:
+time	 (simulation) seconds	 The time step described by the values within this timestep-element
+id	 id	 The id of the edge/lane/vehicle
+pos	 m	 The position of the vehicle at the lane within the described time step
+speed	 m/s	 The speed of the vehicle within the described time step
+
+4) edge data - information about number of vehicles and their speed for all edges (for visualisation)
+
+Calling in additional config file (aggregation of data every 15 minutes)
+<additional>
+   <edgeData id="edge_dump" file="edge_dump.xml" freq="900" />
+</additional>
+

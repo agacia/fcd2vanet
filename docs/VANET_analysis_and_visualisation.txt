@@ -1,0 +1,32 @@
+GraphStream 
+
+To generate .dgs file, run the script:
+- if VANET file is generated from NS3:
+
+python scripts/vanet2dgs.py \
+--vanetFile vanet.csv \
+--dgsFile vanet.dgs \
+--fromNS3 (if VANET file is generated from NS3)
+
+
+Connectivity statistics
+
+python scripts/analyseVanet.py \
+--vanetFile vanet.cvs \
+--fromNS3 (if VANET file is generated from NS3)
+
+
+SUMO Traffic visualisation:
+
+1) Generate SUMO ouput file with the average speed on the road network 
+http://sumo.sourceforge.net/doc/current/docs/userdoc/Tools/Visualization.html#mpl_dump_onNet.py
+
+a) Add the following line to your configuration additional file:
+<edgeData id="edge_dump" file="edge_dump.xml" freq="900" />
+
+b) Call the SUMO script.
+
+python mpl_dump_onNet.py --dump edge_dump.xml --net-file /Users/agatagrzybek/PhD/workshop/sumo_scenarios/Luxembourg_6-8/Luxembourg.net.xml --output Luxembourg%05d.png
+
+! If your edge data has gaps, try to use our modified script.
+
