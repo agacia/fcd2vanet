@@ -30,12 +30,18 @@ Features
 
 SUMO2VANET allows to:
 
-(1) `Generate floating car data (FCD)`_ of any road network with traffic simulator SUMO `SUMO`_
-(2) `Generate your VANET`_ - a dynamic graph with vehicles as nodes and connections between vehicles as edges. 
+(1) `Generate floating car data FCD`_ of any road network with traffic simulator SUMO `SUMO`_ .
+
+(2) `Generate your VANET`_ -a dynamic graph with vehicles as nodes and connections between vehicles as edges. 
+	
 	Edges can be specified based on:
+	
 	- Euclidean distance
-	- DSRC wireless range (using NS3 simulator `ns-3`_)
+	
+	- DSRC wireless range (using NS3 simulator `ns-3`_ )
+	
 	VANET graph generated to a general format file .csv. 
+	
 (3) `Analyse and visualise VANET`_ in different ways:
 	- Calculate connectivity statistics with a python script
 	- Present as a dynamic graph in GraphStream .dgs format
