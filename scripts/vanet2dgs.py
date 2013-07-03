@@ -5,6 +5,7 @@ from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesNSImpl
 from optparse import OptionParser
 from dgsWriter import *
+from numpy import * 
 
 parser = OptionParser("usage: %prog [options]")
 parser.add_option('--vanetFile', help=("VANET file."), type="string", dest="vanetFile")
@@ -23,48 +24,177 @@ if not options.vanetFile or not options.dgsFile:
 
 macMap = {}
 currentStep = -1
-stepVehicles = []
-runningVehicles = []
-edges = {}
-edgesStepCount = 0
+stepVehicles = {}
+runningVehicles = {}
+stepPoints = {}
+
 edgesCount = 0
 nodesCount = 0
-nodesStepCount = 0
+edgesStepCount = 0
 deletedNodesCount = 0
-addedNodsCount = 0
-edgesToAdd = []
-edgesToRemove = []
+addedNodesCount = 0
+
+maxEdgeDistance = 0
+sumEdgeDistance = 0
+countEdgeDistances = 0 
 
 def populateMacMap(elem, args={}):
 	#print line	
 	global macMap
-	elem = line.split(' ')
+	elem = line.split(',')
 	if len(elem) > 5:
 		vehicleId = str(elem[2])
 		vehicleMac = str(elem[5])
 		macMap[vehicleMac] = vehicleId
 	return 
 
+def calculateDistance(p0, p1):
+	deltaX = p0[0] - p1[0]
+	deltaY = p0[1] - p1[1]
+	# print "deltaX: {}, deltaY: {}".format(deltaX, deltaY)
+	distance = math.sqrt((p0[0] - p1[0])*(p0[0] - p1[0]) + (p0[1] - p1[1])*(p0[1] - p1[1]))
+	return distance
+		
+def formatEdgeId(node1, node2):
+	return "{0}-{1}".format(node1,node2)
+
+def splitEdgeId(edgeId):
+	return edgeId.split("-")
+
+def edgeExist(edges, node1, node2):
+	edgeId = formatEdgeId(node1, node2)
+	edgeIdReverse = formatEdgeId(node2, node1)
+	return (edgeId in edges or edgeIdReverse in edges)
+
+def checkEdges(stepVehicles, stepPoints):
+	global maxEdgeDistance
+	for stepVehicleId,stepVehicleEdges in stepVehicles.iteritems():
+		point1 = stepPoints[stepVehicleId]
+		for neighborId in stepVehicleEdges:
+			point2 = stepPoints[neighborId]
+			distance = calculateDistance(point1, point2)
+			if distance > maxEdgeDistance:
+				maxEdgeDistance = distance
+	return
+
 def processLine(line, args={}):
 	#print line	
+	global currentStep
 	global macMap
 	global stepVehicles
+	global stepPoints
+
 	global runningVehicles
-	global currentStep
+
 	global edges 
 	global nodesCount
-	global nodesStepCount
 	global edgesCount
 	global edgesStepCount
-	global addedNodsCount
-	global edgesToAdd
-	global edgesToRemove
-	global deletedNodesCount
+	
+	global maxEdgeDistance
+	global sumEdgeDistance 
+	global countEdgeDistances
 
 	#1 21631 21 23094 21968.5 00:00:00:00:00:16 2 00:00:00:00:00:20,1 00:00:00:00:01:f7,1 
 	elem = line.split(',')
 	step = float(elem[0])
-	time = float(elem[1])
+	
+	# next step
+	# populate array removedVehicles with vehicles who were in the previous step but are not in the step any more
+	# write del in dgs
+	if step != currentStep:	
+		
+		dgsWriter.writeStep(step)
+		print "----"
+		# print "step: {0}, stepVehicles: {1}, stepPoints: {2}, stepEdges: {3}".format(currentStep, len(stepVehicles), len(stepPoints), edgesStepCount)
+		# print "step: {0}, runningVehicles: {1} ".format(currentStep, len(runningVehicles))
+
+		if len(stepVehicles) > 0:
+			# if a running vehice is not in the current step, remove from running
+			nodesToDelete = []
+			addedNodesCount = 0
+			edgesToAdd = []
+			edgesToDelete = []
+			for runningVehicleId in runningVehicles.iterkeys():
+				if not runningVehicleId in stepVehicles:
+					nodesToDelete.append(runningVehicleId)
+			for nodeId in nodesToDelete:
+				for edgeToDelete in runningVehicles[nodeId]:
+					edgesToDelete.append(formatEdgeId(nodeId, edgeToDelete))
+				runningVehicles = removekey(runningVehicles, nodeId)
+					
+			# if a step vehicle is not in running, add, if is , write change
+			for stepVehicleId,stepVehicleEdges in stepVehicles.iteritems():
+				point = stepPoints[stepVehicleId]
+				if not stepVehicleId in runningVehicles.keys():
+					addedNodesCount += 1
+					runningVehicles[stepVehicleId] = stepVehicleEdges
+					# wrtie added nodes 
+					dgsWriter.writeAddNode(stepVehicleId, point[0], point[1])
+					# remember which edges to add
+					for edgeToAdd in stepVehicleEdges:
+						if not edgeExist(edgesToAdd, stepVehicleId, edgeToAdd):
+							edgesToAdd.append(formatEdgeId(stepVehicleId, edgeToAdd))
+					
+				else:
+					# write changed nodes
+					dgsWriter.writeChangeNode(stepVehicleId, point[0], point[1])
+					# add/delete edges if changed
+					currentEdges = runningVehicles[stepVehicleId]
+
+					# if stepVehicleId=="347":
+					# 	print "currentStep {2}, current {0}, new {1}".format(currentEdges, stepVehicleEdges, currentStep)
+					
+					for currentEdge in currentEdges:
+						if not currentEdge in stepVehicleEdges:
+							if not edgeExist(edgesToDelete, stepVehicleId, currentEdge):
+								edgesToDelete.append(formatEdgeId(stepVehicleId, currentEdge))
+								runningVehicles[stepVehicleId].remove(currentEdge)
+								edgeId = formatEdgeId(stepVehicleId, currentEdge)
+								# if edgeId=="347-571":
+								# 	print "currentStep {2}, deleting edge {0}, because edgeExist? {1}".format(edgeId, (edgeExist(edgesToDelete, stepVehicleId, currentEdge)), currentStep)
+					
+					for newEdge in stepVehicleEdges:
+						if newEdge not in currentEdges:
+							if not edgeExist(edgesToAdd, stepVehicleId, newEdge):
+								edgesToAdd.append(formatEdgeId(stepVehicleId, newEdge))
+								runningVehicles[stepVehicleId].append(newEdge)
+								edgeId = formatEdgeId(stepVehicleId, newEdge)
+								# if edgeId=="347-571":
+								# 	print "currentStep {2}, adding edge {0}, because edgeExist? {1}".format(edgeId, (edgeExist(edgesToAdd, stepVehicleId, newEdge)), currentStep)
+
+			# write deleted nodes
+			for nodeId in nodesToDelete:
+				dgsWriter.writeDelNode(nodeId)	
+			# wrtite added edges
+			for edgeId in edgesToAdd:
+				edges = splitEdgeId(edgeId)
+				if len(edges) == 2:
+					dgsWriter.writeAddEdge(edgeId, edges[0], edges[1])
+				else:
+					print "Error. EdgeId in wrong format!"
+			# write deleted edges
+			for edgeId in edgesToDelete:
+				dgsWriter.writeDelEdge(edgeId)
+
+			print "step: {0}, addedNodes: {1}, deletedNodes {2}, edgesToAdd: {3}, edgesToDelete: {4} ".format(currentStep, addedNodesCount, len(nodesToDelete), len(edgesToAdd), len(edgesToDelete))
+
+			# checkEdges(stepVehicles, stepPoints)
+			# print "step: {0}, maxEdgeDistance: {1}".format(currentStep, maxEdgeDistance)
+
+		# prepare to the next step
+		currentStep = step
+		edgesCount += edgesStepCount
+		nodesCount += len(stepVehicles)
+		edgesStepCount = 0
+		
+		addedNodesCount = 0
+		deletedNodsCount = 0
+
+		stepVehicles = {}
+		stepPoints = {}
+
+	# record step vehicle information (id, point, edges)
 	vehicleId = str(elem[2])
 	vehicleX = float(elem[3])
 	vehicleY = float(elem[4])
@@ -76,89 +206,11 @@ def processLine(line, args={}):
 		if options.fromNS3:
 			neighborId = macMap[elem[7+i]]
 		vehicleEdges.append(neighborId)
+		edgesStepCount += 1
 
-	# next step
-	# populate array removedVehicles with vehicles who were in the previous step but are not in the step any more
-	# write del in dgs
-	if step != currentStep:	
-		print "currentStep: {}, nodes: {}, addedNodes: {} , deletedNodes: {}, edges: {}, addedEdges: {}, deletedEdges: {}".format(currentStep, nodesStepCount, addedNodsCount, deletedNodesCount, edgesStepCount, len(edgesToAdd), len(edgesToRemove))
-		currentStep = step
-		edgesCount += edgesStepCount
-		nodesCount += nodesStepCount
-		edgesStepCount = 0
-		nodesStepCount = 0
-		addedNodsCount = 0
-		deletedNodsCount = 0
-
-		for edge in edgesToAdd:
-			dgsWriter.writeAddEdge(edge[0], edge[1], edge[2])
-		for edgeId in edgesToRemove:
-			dgsWriter.writeDelEdge(edgeId)
-		edgesToAdd = []
-		edgesToRemove = []
-
-		dgsWriter.writeStep(step)
-		if len(stepVehicles) > 0:
-
-			removedVehicles = []
-			for vehicle in runningVehicles:
-				if not vehicle in stepVehicles :
-					removedVehicles.append(vehicle)
-			for vehicle in removedVehicles:
-				runningVehicles.remove(vehicle)
-				if vehicle in edges:
-					removekey(edges, vehicle)
-				dgsWriter.writeDelNode(vehicle)
-				# print "deleting node {}".format(vehicle) 
-				deletedNodesCount += 1
-				nodesStepCount -= 1
-		stepVehicles = []
-
-	stepVehicles.append(vehicleId)
-	nodesStepCount += 1
-
-	# update running vehicles
-	#new vehicle
-	if not vehicleId in runningVehicles:
-		# add node
-		dgsWriter.writeAddNode(vehicleId, vehicleX, vehicleY)
-		runningVehicles.append(vehicleId)
-		addedNodsCount += 1
-	# change vehicle
-	else:
-		dgsWriter.writeChangeNode(vehicleId, vehicleX, vehicleY)
-
-	# edges 
-	if vehicleNumberOfEdges > 0:
-		if vehicleId not in edges:
-			edges[vehicleId] = []
-		# add / modify
-
-		# if vehicleId == "0":
-			# print "step {}, vehicle {}. existing neighbors: {},\n step neighbors: {}".format(currentStep, vehicleId, edges[vehicleId], vehicleEdges )
-		for neighborId in vehicleEdges:
-			edgesStepCount += 1
-			# if new edge
-			if not neighborId in edges[vehicleId] and ((neighborId not in edges ) or (neighborId in edges and not vehicleId in edges[neighborId])):
-				edges[vehicleId].append(neighborId)
-				edgeId = (vehicleId+'-'+neighborId)
-				edgesToAdd.append([edgeId, vehicleId, neighborId])
-				# if vehicleId == "0" and neighborId == "75":
-				# 	print "adding {}".format(edgeId)
-				# dgsWriter.writeAddEdge(edgeId, vehicleId, neighborId)
-			# if edge changed - we do not handle it now
-			#else:
-		# remove
-		neighborsToRemove = [] 
-		for neighborId in edges[vehicleId]:
-			if not neighborId in vehicleEdges:
-				# print 'removing edge '+neighborId
-				# dgsWriter.writeDelEdge(vehicleId+'-'+neighborId)
-				edgesToRemove.append(vehicleId+'-'+neighborId)
-				neighborsToRemove.append(neighborId)
-		for neighborId in neighborsToRemove:
-			edges[vehicleId].remove(neighborId)
-		
+	stepVehicles[vehicleId] = vehicleEdges
+	stepPoints[vehicleId] = [vehicleX,vehicleY]
+	
 	return 0
 
 def removekey(d, key):
@@ -177,5 +229,4 @@ if options.fromNS3:
 for line in fileinput.input(options.vanetFile):
 	processLine(line, args)
 
-print "currentStep: " + str(currentStep) + ", nodesStepCount: " + str(nodesStepCount) + ", edgesStepCount: " + str(edgesStepCount)
 print "nodesCount: " + str(nodesCount) + ", edgesCount: " + str(edgesCount)
