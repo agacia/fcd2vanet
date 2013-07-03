@@ -56,15 +56,20 @@ def calculateDistance(p0, p1):
 	return distance
 		
 def formatEdgeId(node1, node2):
-	return "{0}-{1}".format(node1,node2)
+	nodeNum1 = int(node1)
+	nodeNum2 = int(node2)
+	edgeId = "{0}-{1}".format(node1,node2)
+	if nodeNum2 < nodeNum1:
+		edgeId = "{1}-{0}".format(node1,node2)
+	return edgeId
 
 def splitEdgeId(edgeId):
 	return edgeId.split("-")
 
-def edgeExist(edges, node1, node2):
-	edgeId = formatEdgeId(node1, node2)
-	edgeIdReverse = formatEdgeId(node2, node1)
-	return (edgeId in edges or edgeIdReverse in edges)
+# def edgeExist(edges, node1, node2):
+# 	edgeId = formatEdgeId(node1, node2)
+# 	edgeIdReverse = formatEdgeId(node2, node1)
+# 	return (edgeId in edges or edgeIdReverse in edges)
 
 def checkEdges(stepVehicles, stepPoints):
 	global maxEdgeDistance
@@ -126,6 +131,8 @@ def processLine(line, args={}):
 			# if a step vehicle is not in running, add, if is , write change
 			for stepVehicleId,stepVehicleEdges in stepVehicles.iteritems():
 				point = stepPoints[stepVehicleId]
+				# if stepVehicleId == "337" or stepVehicleId == "344":
+				# 	print "step node {0}: {1}".format(stepVehicleId, stepVehicleEdges)
 				if not stepVehicleId in runningVehicles.keys():
 					addedNodesCount += 1
 					runningVehicles[stepVehicleId] = stepVehicleEdges
@@ -133,8 +140,17 @@ def processLine(line, args={}):
 					dgsWriter.writeAddNode(stepVehicleId, point[0], point[1])
 					# remember which edges to add
 					for edgeToAdd in stepVehicleEdges:
-						if not edgeExist(edgesToAdd, stepVehicleId, edgeToAdd):
-							edgesToAdd.append(formatEdgeId(stepVehicleId, edgeToAdd))
+						edgeId = formatEdgeId(stepVehicleId, edgeToAdd)
+						if edgeToAdd not in runningVehicles:
+							runningVehicles[edgeToAdd] = []
+							point = stepPoints[edgeToAdd]
+							dgsWriter.writeAddNode(edgeToAdd, point[0], point[1])
+						elif stepVehicleId not in runningVehicles[edgeToAdd]:
+							runningVehicles[edgeToAdd].append(stepVehicleId)
+						if edgeId not in edgesToAdd:
+							edgesToAdd.append(edgeId)
+							# if edgeId=="871-1126":
+							# 	print "{0}, node {1}-{2}, adding first time".format(currentStep, stepVehicleId, edgeToAdd)	
 					
 				else:
 					# write changed nodes
@@ -142,32 +158,43 @@ def processLine(line, args={}):
 					# add/delete edges if changed
 					currentEdges = runningVehicles[stepVehicleId]
 
-					# if stepVehicleId=="347":
-					# 	print "currentStep {2}, current {0}, new {1}".format(currentEdges, stepVehicleEdges, currentStep)
+					# if stepVehicleId=="871":
+					# 	print "currentStep {2}, {3}, current {0}, new {1}".format(runningVehicles[stepVehicleId], stepVehicleEdges, currentStep, stepVehicleId)
 					
 					for currentEdge in currentEdges:
 						if not currentEdge in stepVehicleEdges:
-							if not edgeExist(edgesToDelete, stepVehicleId, currentEdge):
-								edgesToDelete.append(formatEdgeId(stepVehicleId, currentEdge))
+							# print "{0}-{1}".format(stepVehicleId, currentEdge)
+							edgeId = formatEdgeId(stepVehicleId, currentEdge)
+							node1Number = int(stepVehicleId)
+							node2Number = int(currentEdge)
+							if edgeId not in edgesToDelete:
+								if node1Number < node2Number:
+									edgesToDelete.append(edgeId)
 								runningVehicles[stepVehicleId].remove(currentEdge)
-								edgeId = formatEdgeId(stepVehicleId, currentEdge)
-								# if edgeId=="347-571":
-								# 	print "currentStep {2}, deleting edge {0}, because edgeExist? {1}".format(edgeId, (edgeExist(edgesToDelete, stepVehicleId, currentEdge)), currentStep)
-					
+								# if edgeId=="128-554":
+								# 	print "currentStep {1}, deleting for node {3} edge: {0}, after: {2}".format(edgeId, currentStep, runningVehicles[stepVehicleId], stepVehicleId)
+								
+
 					for newEdge in stepVehicleEdges:
 						if newEdge not in currentEdges:
-							if not edgeExist(edgesToAdd, stepVehicleId, newEdge):
-								edgesToAdd.append(formatEdgeId(stepVehicleId, newEdge))
+							edgeId = formatEdgeId(stepVehicleId, newEdge)
+							node1Number = int(stepVehicleId)
+							node2Number = int(newEdge)
+							if node1Number < node2Number:
+								if edgeId not in edgesToAdd:
+									edgesToAdd.append(edgeId)
+									# if edgeId=="871-1126":
+									# 	print "{0}, node {1}-{2}, adding in change".format(currentStep, stepVehicleId, newEdge)	
 								runningVehicles[stepVehicleId].append(newEdge)
-								edgeId = formatEdgeId(stepVehicleId, newEdge)
-								# if edgeId=="347-571":
-								# 	print "currentStep {2}, adding edge {0}, because edgeExist? {1}".format(edgeId, (edgeExist(edgesToAdd, stepVehicleId, newEdge)), currentStep)
+								
 
 			# write deleted nodes
 			for nodeId in nodesToDelete:
 				dgsWriter.writeDelNode(nodeId)	
 			# wrtite added edges
 			for edgeId in edgesToAdd:
+				if edgeId=="285-1026":
+					print "{0}, node writitng {1}".format(currentStep, edgeId)
 				edges = splitEdgeId(edgeId)
 				if len(edges) == 2:
 					dgsWriter.writeAddEdge(edgeId, edges[0], edges[1])
@@ -176,6 +203,10 @@ def processLine(line, args={}):
 			# write deleted edges
 			for edgeId in edgesToDelete:
 				dgsWriter.writeDelEdge(edgeId)
+				if edgeId=="285-1026":
+					print "{0}, node deleting {1}".format(currentStep, edgeId)
+
+			# print runningVehicles["128"]
 
 			print "step: {0}, addedNodes: {1}, deletedNodes {2}, edgesToAdd: {3}, edgesToDelete: {4} ".format(currentStep, addedNodesCount, len(nodesToDelete), len(edgesToAdd), len(edgesToDelete))
 

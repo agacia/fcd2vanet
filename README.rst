@@ -1,4 +1,4 @@
-w=====
+=====
 FCD2VANET
 =====
 
@@ -18,12 +18,12 @@ FCD2VANET project allows to present floating car data (FCD) as a vehicular ad ho
 
 FCD is floating car data, i.e. localisation data collected from moving vehicles `fcd`_.
 
-VANETs is a vehicular ad hoc network, i.e. wireless networks consiting of moving vehicles `vanet`_
+VANETs is a vehicular ad hoc network, i.e. wireless networks consisting of moving vehicles `vanet`_
 VANETs are a key technology in a concept of Connected Vehicles, that aims in improving traffic efficiency, safety and convenience `cc`_. 
 
-Real-world experiments of large-scale VANETs are imposible, thus computer simulations are necessary.
-Simulation of VANETs is complex, becuase the underlying network topology reproduces a specific mobility of vehicles, that impacts the connectivity among nodes.
-Moreover, networks are highly dynamic, time-vairand and often of large scale.
+Real-world experiments of large-scale VANETs are impossible, thus computer simulations are necessary.
+Simulation of VANETs is complex, becauase the underlying network topology reproduces a specific mobility of vehicles, that impacts the connectivity among nodes.
+Moreover, networks are highly dynamic, time-variant and often of large scale.
 
 Features
 --------
