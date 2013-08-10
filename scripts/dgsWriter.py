@@ -31,8 +31,23 @@ class DGSWriter:
 		self.out.write("cn "+str(vehicleId)+' x='+str(x)+' y='+str(y)+'\n')
 		return
 
+	# def writeAddNode(self, vehicleId, x, y, attrNames, attrValues):
+	# 	self.out.write("an "+str(vehicleId)+' x='+str(x)+' y='+str(y)+'\n')
+	# 	return
+
+	# def writeChangeNode(self, vehicleId, x, y, attrNames, attrValues):
+	# 	self.out.write("cn "+str(vehicleId)+' x='+str(x)+' y='+str(y));
+	# 	for i in range(0,len(attrNames)):
+	# 		self.out.write(" "+attrNames[i]+"="+attrValues[i])
+	# 	self.out.write('\n')
+	# 	return
+
 	def writeDelNode(self, vehicleId):
 		self.out.write("dn "+str(vehicleId)+'\n')
+		return
+
+	def writeAddEdge(self, edgeId, node1, node2, weight):
+		self.out.write("ae \""+str(edgeId)+'" '+str(node1)+' '+str(node2)+' weight='+str(weight)+'\n')
 		return
 
 	def writeAddEdge(self, edgeId, node1, node2):

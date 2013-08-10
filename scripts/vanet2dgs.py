@@ -23,9 +23,11 @@ if not options.vanetFile or not options.dgsFile:
 	exit()
 
 macMap = {}
+mapIdMac = {}
 currentStep = -1
 stepVehicles = {}
 runningVehicles = {}
+runningEdgesCount = 0
 stepPoints = {}
 
 edgesCount = 0
@@ -46,6 +48,7 @@ def populateMacMap(elem, args={}):
 		vehicleId = str(elem[2])
 		vehicleMac = str(elem[5])
 		macMap[vehicleMac] = vehicleId
+		mapIdMac[vehicleId] = vehicleMac
 	return 
 
 def calculateDistance(p0, p1):
@@ -56,10 +59,10 @@ def calculateDistance(p0, p1):
 	return distance
 		
 def formatEdgeId(node1, node2):
-	nodeNum1 = int(node1)
-	nodeNum2 = int(node2)
+	# nodeMac1 = mapIdMac(node1)
+	# nodeMac2 = mapIdMac(node2)
 	edgeId = "{0}-{1}".format(node1,node2)
-	if nodeNum2 < nodeNum1:
+	if node2 < node1:
 		edgeId = "{1}-{0}".format(node1,node2)
 	return edgeId
 
@@ -73,14 +76,27 @@ def splitEdgeId(edgeId):
 
 def checkEdges(stepVehicles, stepPoints):
 	global maxEdgeDistance
+	global countEdgeDistances
+	global sumEdgeDistance 
+	maxEdgeDistance = 0
+	countEdgeDistances = 0
+	sumEdgeDistance = 0
 	for stepVehicleId,stepVehicleEdges in stepVehicles.iteritems():
 		point1 = stepPoints[stepVehicleId]
 		for neighborId in stepVehicleEdges:
 			point2 = stepPoints[neighborId]
 			distance = calculateDistance(point1, point2)
+			countEdgeDistances += 1
+			sumEdgeDistance += distance
 			if distance > maxEdgeDistance:
 				maxEdgeDistance = distance
 	return
+
+def getRunningEdges(runningVehicles):
+	runningEdgesCount = 0
+	for vehicleId,vehicleEdges in runningVehicles.iteritems():
+		runningEdgesCount += len(vehicleEdges)
+	return runningEdgesCount			
 
 def processLine(line, args={}):
 	#print line	
@@ -88,17 +104,15 @@ def processLine(line, args={}):
 	global macMap
 	global stepVehicles
 	global stepPoints
-
 	global runningVehicles
-
 	global edges 
 	global nodesCount
 	global edgesCount
 	global edgesStepCount
-	
 	global maxEdgeDistance
 	global sumEdgeDistance 
 	global countEdgeDistances
+	global runningEdgesCount
 
 	#1 21631 21 23094 21968.5 00:00:00:00:00:16 2 00:00:00:00:00:20,1 00:00:00:00:01:f7,1 
 	elem = line.split(',')
@@ -108,113 +122,112 @@ def processLine(line, args={}):
 	# populate array removedVehicles with vehicles who were in the previous step but are not in the step any more
 	# write del in dgs
 	if step != currentStep:	
+		currentStep = step
 		
 		dgsWriter.writeStep(step)
-		print "----"
-		# print "step: {0}, stepVehicles: {1}, stepPoints: {2}, stepEdges: {3}".format(currentStep, len(stepVehicles), len(stepPoints), edgesStepCount)
-		# print "step: {0}, runningVehicles: {1} ".format(currentStep, len(runningVehicles))
 
 		if len(stepVehicles) > 0:
-			# if a running vehice is not in the current step, remove from running
+
+			print "----"
+			print "step: {0}, stepVehicles: {1}, stepPoints: {2}, stepEdges: {3}".format(currentStep, len(stepVehicles), len(stepPoints), edgesStepCount)
+			print "step: {0}, runningVehicles: {1} runningEdges: {2}".format(currentStep, len(runningVehicles), getRunningEdges(runningVehicles))
+			
 			nodesToDelete = []
 			addedNodesCount = 0
 			edgesToAdd = []
+			nodesToAdd = []
 			edgesToDelete = []
-			for runningVehicleId in runningVehicles.iterkeys():
-				if not runningVehicleId in stepVehicles:
-					nodesToDelete.append(runningVehicleId)
-			for nodeId in nodesToDelete:
-				for edgeToDelete in runningVehicles[nodeId]:
-					edgesToDelete.append(formatEdgeId(nodeId, edgeToDelete))
-				runningVehicles = removekey(runningVehicles, nodeId)
+			runningEdgesCount = 0
 					
 			# if a step vehicle is not in running, add, if is , write change
 			for stepVehicleId,stepVehicleEdges in stepVehicles.iteritems():
 				point = stepPoints[stepVehicleId]
+				
 				# if stepVehicleId == "337" or stepVehicleId == "344":
 				# 	print "step node {0}: {1}".format(stepVehicleId, stepVehicleEdges)
 				if not stepVehicleId in runningVehicles.keys():
 					addedNodesCount += 1
 					runningVehicles[stepVehicleId] = stepVehicleEdges
 					# wrtie added nodes 
+					# id = mapIdMac(stepVehicleId)
 					dgsWriter.writeAddNode(stepVehicleId, point[0], point[1])
 					# remember which edges to add
 					for edgeToAdd in stepVehicleEdges:
 						edgeId = formatEdgeId(stepVehicleId, edgeToAdd)
-						if edgeToAdd not in runningVehicles:
+						if edgeToAdd not in runningVehicles.keys():
 							runningVehicles[edgeToAdd] = []
+							nodesToAdd.append(edgeToAdd)
+							addedNodesCount += 1
 							point = stepPoints[edgeToAdd]
+							# id = mapIdMac(edgeToAdd)
 							dgsWriter.writeAddNode(edgeToAdd, point[0], point[1])
-						elif stepVehicleId not in runningVehicles[edgeToAdd]:
-							runningVehicles[edgeToAdd].append(stepVehicleId)
 						if edgeId not in edgesToAdd:
 							edgesToAdd.append(edgeId)
-							# if edgeId=="871-1126":
-							# 	print "{0}, node {1}-{2}, adding first time".format(currentStep, stepVehicleId, edgeToAdd)	
-					
+					runningEdgesCount += len(runningVehicles[stepVehicleId])
+
 				else:
 					# write changed nodes
-					dgsWriter.writeChangeNode(stepVehicleId, point[0], point[1])
-					# add/delete edges if changed
-					currentEdges = runningVehicles[stepVehicleId]
-
-					# if stepVehicleId=="871":
-					# 	print "currentStep {2}, {3}, current {0}, new {1}".format(runningVehicles[stepVehicleId], stepVehicleEdges, currentStep, stepVehicleId)
+					if (stepVehicleId not in nodesToAdd):
+						# id = mapIdMac(stepVehicleId)
+						dgsWriter.writeChangeNode(stepVehicleId, point[0], point[1])
 					
-					for currentEdge in currentEdges:
+					# add/delete edges if changed 
+					for newEdge in stepVehicleEdges:
+						if newEdge not in runningVehicles[stepVehicleId]:
+							edgeId = formatEdgeId(stepVehicleId, newEdge)			
+							if edgeId not in edgesToAdd:
+								edgesToAdd.append(edgeId)
+							runningVehicles[stepVehicleId].append(newEdge)
+					neighborsToRemove = []
+					for currentEdge in runningVehicles[stepVehicleId]:
 						if not currentEdge in stepVehicleEdges:
 							# print "{0}-{1}".format(stepVehicleId, currentEdge)
 							edgeId = formatEdgeId(stepVehicleId, currentEdge)
-							node1Number = int(stepVehicleId)
-							node2Number = int(currentEdge)
 							if edgeId not in edgesToDelete:
-								if node1Number < node2Number:
-									edgesToDelete.append(edgeId)
-								runningVehicles[stepVehicleId].remove(currentEdge)
-								# if edgeId=="128-554":
-								# 	print "currentStep {1}, deleting for node {3} edge: {0}, after: {2}".format(edgeId, currentStep, runningVehicles[stepVehicleId], stepVehicleId)
-								
+								edgesToDelete.append(edgeId)
+							neighborsToRemove.append(currentEdge)
+					for neighborToRemove in neighborsToRemove:
+						runningVehicles[stepVehicleId].remove(neighborToRemove)
+						
+					runningEdgesCount += len(runningVehicles[stepVehicleId])			
 
-					for newEdge in stepVehicleEdges:
-						if newEdge not in currentEdges:
-							edgeId = formatEdgeId(stepVehicleId, newEdge)
-							node1Number = int(stepVehicleId)
-							node2Number = int(newEdge)
-							if node1Number < node2Number:
-								if edgeId not in edgesToAdd:
-									edgesToAdd.append(edgeId)
-									# if edgeId=="871-1126":
-									# 	print "{0}, node {1}-{2}, adding in change".format(currentStep, stepVehicleId, newEdge)	
-								runningVehicles[stepVehicleId].append(newEdge)
-								
-
-			# write deleted nodes
+			# if a running vehice is not in the current step, remove from running
+			for runningVehicleId in runningVehicles.iterkeys():
+				if not runningVehicleId in stepVehicles:
+					nodesToDelete.append(runningVehicleId)
 			for nodeId in nodesToDelete:
-				dgsWriter.writeDelNode(nodeId)	
+				for edgeToDelete in runningVehicles[nodeId]:
+					edgeId = formatEdgeId(nodeId, edgeToDelete)
+					if edgeId not in edgesToDelete:
+						edgesToDelete.append(edgeId)
+				runningVehicles = removekey(runningVehicles, nodeId)
+
 			# wrtite added edges
 			for edgeId in edgesToAdd:
-				if edgeId=="285-1026":
-					print "{0}, node writitng {1}".format(currentStep, edgeId)
 				edges = splitEdgeId(edgeId)
 				if len(edges) == 2:
+					distance = calculateDistance(stepPoints[edges[0]], stepPoints[edges[1]])
 					dgsWriter.writeAddEdge(edgeId, edges[0], edges[1])
 				else:
 					print "Error. EdgeId in wrong format!"
 			# write deleted edges
 			for edgeId in edgesToDelete:
+				# id = mapIdMac(edgeId)
 				dgsWriter.writeDelEdge(edgeId)
-				if edgeId=="285-1026":
-					print "{0}, node deleting {1}".format(currentStep, edgeId)
-
-			# print runningVehicles["128"]
-
+			# write deleted nodes
+			for nodeId in nodesToDelete:
+				# id = mapIdMac(nodeId)
+				dgsWriter.writeDelNode(nodeId)	
+			
 			print "step: {0}, addedNodes: {1}, deletedNodes {2}, edgesToAdd: {3}, edgesToDelete: {4} ".format(currentStep, addedNodesCount, len(nodesToDelete), len(edgesToAdd), len(edgesToDelete))
-
-			# checkEdges(stepVehicles, stepPoints)
-			# print "step: {0}, maxEdgeDistance: {1}".format(currentStep, maxEdgeDistance)
+			print "step: {0}, after step runningVehicles: {1} runningEdges: {2}, runningEdgesCount: {3}".format(currentStep, len(runningVehicles), getRunningEdges(runningVehicles), runningEdgesCount)
+			
+			checkEdges(stepVehicles, stepPoints)
+			if countEdgeDistances > 0:
+				print "step: {0}, maxEdgeDistance: {1}, avg distance: {2}".format(currentStep, maxEdgeDistance, sumEdgeDistance/countEdgeDistances)
 
 		# prepare to the next step
-		currentStep = step
+		
 		edgesCount += edgesStepCount
 		nodesCount += len(stepVehicles)
 		edgesStepCount = 0
@@ -226,7 +239,8 @@ def processLine(line, args={}):
 		stepPoints = {}
 
 	# record step vehicle information (id, point, edges)
-	vehicleId = str(elem[2])
+	# vehicleId = str(elem[2])
+	vehicleId = str(elem[5])
 	vehicleX = float(elem[3])
 	vehicleY = float(elem[4])
 	vehicleMac = str(elem[5])
@@ -234,8 +248,8 @@ def processLine(line, args={}):
 	vehicleEdges = []
 	for i in range(0,vehicleNumberOfEdges):
 		neighborId = str(elem[7+i]).strip()
-		if options.fromNS3:
-			neighborId = macMap[elem[7+i]]
+		# if options.fromNS3:
+		# 	neighborId = macMap[elem[7+i]]
 		vehicleEdges.append(neighborId)
 		edgesStepCount += 1
 
@@ -243,6 +257,7 @@ def processLine(line, args={}):
 	stepPoints[vehicleId] = [vehicleX,vehicleY]
 	
 	return 0
+
 
 def removekey(d, key):
     r = dict(d)
@@ -254,9 +269,7 @@ def removekey(d, key):
 
 dgsWriter = DGSWriter(options.dgsFile)
 dgsWriter.writeHeader("DGS004", "vanet", 0, 0)
-if options.fromNS3:
-	for line in fileinput.input(options.vanetFile):
-		populateMacMap(line, args)
+# populateMacMap(line, args)
 for line in fileinput.input(options.vanetFile):
 	processLine(line, args)
 

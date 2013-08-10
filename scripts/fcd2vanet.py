@@ -92,15 +92,16 @@ def processTimeStep(elem, args={}):
 			neighbors = tree.query_ball_point(point, radious)
 			neighbors.remove(i)
 			numberOfNeighbors = len(neighbors)
-			neighborsIdInt = []
+			neighborsId = []
 			for neighbor in neighbors:
 				distance = calculateDistance(point,points[neighbor])
 				neighborId = stepVehicles[neighbor]
-				neighborIdInt = allVehicles.index(neighborId)
-				neighborsIdInt.append(neighborIdInt)
+				# neighborIdInt = allVehicles.index(neighborId)
+				# neighborsIdInt.append(neighborIdInt)
+				neighborsId.append(neighborId)
 				# print "{} calculating distance between {}{} and {}{} = {}".format(time,vehicleIdInt,point,neighborIdInt,points[neighbor], distance)
 			# print "neighbors of "+str(i)+"("+str(x)+','+str(y)+"): "+str(neighbors) 
-			vanetWriter.writeVehicle(step, time, vehicleIdInt, x, y, vehicleId, numberOfNeighbors, neighborsIdInt)
+			vanetWriter.writeVehicle(step, time, vehicleIdInt, x, y, vehicleId, numberOfNeighbors, neighborsId)
 			pairs.extend(neighbors)
 			i = i+1
 		
