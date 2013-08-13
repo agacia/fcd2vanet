@@ -31,7 +31,7 @@ def processLine(line, args={}):
 	now = int(data[0])
 	# if now > 10:
 	# 	return 
-
+	# print line
 	if (now != step):
 		if step == -1:
 			globalStep += now
@@ -69,6 +69,8 @@ def addToVehicles(vehicle, step, x, y, degree, connectedComponentId, communityId
 	vehicle["degrees"].append(degree)
 	vehicle["connectedComponents"].append(connectedComponentId)
 	vehicle["communities"].append(communityId)
+	vehicle["x"].append(x)
+	vehicle["y"].append(y)
 
 def createVehicle(id, step, x, y, degree, connectedComponentId, communityId):
 	vehicle = {}
@@ -78,6 +80,8 @@ def createVehicle(id, step, x, y, degree, connectedComponentId, communityId):
 	vehicle["degrees"] = [degree]
 	vehicle["connectedComponents"] = [connectedComponentId]
 	vehicle["communities"] = [communityId]
+	vehicle["x"] = [x]
+	vehicle["y"] = [y]
 	return vehicle
 
 def summariseAnalysis():
@@ -94,8 +98,23 @@ def summariseAnalysis():
 	sumChangesCommunity = 0
 	sumDegree = 0
 	sumNumOfFisconnections = 0
-
-	outVehicles.write("vehicleId\tstart_step\tsteps_count\tdegree\tsteps_connected\tpercent_connected\tchanges_connected\tsteps_in_each_cc\tsteps_in_community\tpercent_in_community\tchanges_community\tsteps_in_each_community\n")
+	xmin = 1000000
+	ymin = 1000000
+	xmax = 0
+	ymax = 0
+	ydisc = []
+	xpos  = []
+	xinCommunity = []
+	xcon = []
+	xdisc = []
+	ypos = []
+	yinCommunity = []
+	ycon = []
+	xchanges = []
+	ychanges = []
+	sumStability = 0
+	sumStabilityCom = 0
+	outVehicles.write("vehicleId\tstart_step\tsteps_count\tdegree\tsteps_connected\tpercent_connected\tchanges_connected\tsteps_in_each_cc\tsteps_in_community\tpercent_in_community\tchanges_community\tsteps_in_each_community\tstability\tstabilityCom\n")
 	for vehicleId,vehicle in vehicles.iteritems():
 		stepsCount = len(vehicle["steps"])
 		if (stepsCount > 0):
@@ -128,9 +147,23 @@ def summariseAnalysis():
 				step = vehicle["steps"][i]
 				degrees += vehicle["degrees"][i]
 				communityId = vehicle["communities"][i]
+				x = vehicle["x"][i]
+				y = vehicle["y"][i]
+				xpos.append(x)
+				ypos.append(y)
+				if x < xmin:
+					xmin = x
+				if x > xmax:
+					xmax = x
+				if y < ymin:
+					ymin = y
+				if y > ymax:
+					ymax = y
 				if communityId != lastCommunityId:
 					changesCommunity += 1
 					sumChangesCommunity += 1
+					xchanges.append(x)
+					ychanges.append(y)
 					if communityId != -1:
 						tripsInCommunity += 1
 						sumTripsInCommunity += 1
@@ -138,6 +171,8 @@ def summariseAnalysis():
 				if communityId != -1:
 					stepsInCommunity += 1
 					sumCommunitySteps += 1	
+					xinCommunity.append(x)
+					yinCommunity.append(y)
 				ccId = vehicle["connectedComponents"][i]
 				if ccId != lastCCId:
 					changesConnected += 1
@@ -149,9 +184,13 @@ def summariseAnalysis():
 					else:
 						numberofDisconnections +=1
 						sumNumOfFisconnections += 1
+						xdisc.append(x)
+						ydisc.append(y)
 				if ccId != -1:
 					stepsConnected += 1
 					sumConnectedSteps += 1 	
+					xcon.append(x)
+					ycon.append(y)
 			
 			percentConnected = float(stepsConnected) / float(stepsCount)
 			percentInCommunity = float(stepsInCommunity) / float(stepsCount)
@@ -163,10 +202,17 @@ def summariseAnalysis():
 			stepsInEachCommunity = 0
 			if tripsInCommunity > 0:
 				stepsInEachCommunity = float(stepsInCommunity) / float(tripsInCommunity)
-			outVehicles.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\n".format(
+			stability = float(stepsInEachCommunity) / float(stepsCount)
+			sumStability += stability
+			if stepsInCommunity > 0:
+				stabilityCom = float(stepsInEachCommunity) / float(stepsInCommunity)
+			sumStabilityCom += stabilityCom
+			
+			outVehicles.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\n".format(
 				vehicleId,startStep,stepsCount,degree,
 				stepsConnected,percentConnected,changesConnected,stepsInEachCC,
-				stepsInCommunity,percentInCommunity,changesCommunity,stepsInEachCommunity), numberofDisconnections)
+				stepsInCommunity,percentInCommunity,changesCommunity,stepsInEachCommunity, numberofDisconnections,
+				stability, stabilityCom))
 	
 	# avegare statistics
 	avgTraveledSteps = 0 # how many seconds a vehicle travels
@@ -178,6 +224,8 @@ def summariseAnalysis():
 	avgStepsInEachCC = 0 # how many seconds a trip in connected components lasts
 	avgNumberOfDisconnections = 0 # how many times a vehicle looses connection 
 	avgDegree = 0
+	avgsumStability = 0
+	avgsumStabilityCom = 0
 	if movingVehicles > 0:
 		avgTraveledSteps = float(sumTravelSteps) / float(movingVehicles)
 		avgConnectedSteps = float(sumConnectedSteps) / float(movingVehicles)
@@ -187,12 +235,18 @@ def summariseAnalysis():
 		avgStepsInEachCommunity = float(sumCommunitySteps) / float(sumTripsInCommunity)
 		avgStepsInEachCC = float(sumConnectedSteps) / float(sumTripsInConnected)
 		avgDegree = float(sumDegree) / float(movingVehicles)
-		avgNumberOfDisconnections = float(sumNumOfFisconnections) / float movingVehicles
+		avgNumberOfDisconnections = float(sumNumOfFisconnections) / float(movingVehicles)
+		avgStability2 = float(sumStability) / float(movingVehicles)
+		avgStabilityCom2 = float(sumStabilityCom) / float(movingVehicles)
+		
 	avgPercentConnectedTime = 0
-	avgPercentInCommunityTime = 0 
+	avgPercentInCommunityTime = 0
+	avgStability = 0 
 	if sumTravelSteps > 0:
 		avgPercentConnectedTime = float(sumConnectedSteps) / float(sumTravelSteps)
 		avgPercentInCommunityTime = float(sumCommunitySteps) / float(sumTravelSteps)
+		avgStability = float(avgStepsInEachCommunity) / float(sumTravelSteps)
+		avgStabilityCom = float(avgStepsInEachCommunity) / float(sumCommunitySteps)
 	outSum.write("vehicles:\t{0}, movingVehicles: {1}\n".format(len(vehicles), movingVehicles))
 	outSum.write("avg degree:\t{0}\n".format(avgDegree))
 	outSum.write("avg traveled steps:\t{0}\n".format(avgTraveledSteps))
@@ -205,7 +259,60 @@ def summariseAnalysis():
 	outSum.write("avg steps in each connected:\t{0}\n".format(avgStepsInEachCC))
 	outSum.write("avg steps in each community:\t{0}\n".format(avgStepsInEachCommunity))
 	outSum.write("avg number of disconnections:\t{0}\n".format(avgNumberOfDisconnections))
+	outSum.write("avg Stability:\t{0}\n".format(avgStability))
+	outSum.write("avg StabilityCom:\t{0}\n".format(avgStabilityCom))
+	outSum.write("avg Stability:\t{0}\n".format(avgStability2))
+	outSum.write("avg Stability:\t{0}\n".format(avgStabilityCom2))
+
+
+	# the x distribution will be centered at -1, the y distro
+	# at +1 with twice the width.
+	xx = np.random.randn(3000)-1
+	yy = np.random.randn(3000)*2+1
+
+	print xmin
+	print xmax
+	print ymin
+	print ymax
 	
+	numbins=100
+	hist,xedges,yedges = np.histogram2d(xpos,ypos,bins=numbins,range=[[xmin,xmax],[ymin,ymax]])
+	extent = [xedges[0], xedges[-1], yedges[0], yedges[-1] ]
+	imshow(hist.T,extent=extent,interpolation='nearest',origin='lower')
+	colorbar()
+	# show()
+	outputfile = os.path.join(options.outputDir, "map_density.png")
+	plt.savefig(outputfile)
+
+	hist,xedges,yedges = np.histogram2d(xdisc,ydisc,bins=numbins,range=[[xmin,xmax],[ymin,ymax]])
+	extent = [xedges[0], xedges[-1], yedges[0], yedges[-1] ]
+	imshow(hist.T,extent=extent,interpolation='nearest',origin='lower')
+	# colorbar()
+	outputfile = os.path.join(options.outputDir, "map_disconnections.png")
+	plt.savefig(outputfile)
+
+	hist,xedges,yedges = np.histogram2d(xinCommunity,yinCommunity,bins=numbins,range=[[xmin,xmax],[ymin,ymax]])
+	extent = [xedges[0], xedges[-1], yedges[0], yedges[-1] ]
+	imshow(hist.T,extent=extent,interpolation='nearest',origin='lower')
+	# colorbar()
+	outputfile = os.path.join(options.outputDir, "map_inCommunity.png")
+	plt.savefig(outputfile)
+
+	hist,xedges,yedges = np.histogram2d(xcon,ycon,bins=numbins,range=[[xmin,xmax],[ymin,ymax]])
+	extent = [xedges[0], xedges[-1], yedges[0], yedges[-1] ]
+	imshow(hist.T,extent=extent,interpolation='nearest',origin='lower')
+	# colorbar()
+	outputfile = os.path.join(options.outputDir, "map_connected.png")
+	plt.savefig(outputfile)
+
+	hist,xedges,yedges = np.histogram2d(xchanges,ychanges,bins=numbins,range=[[xmin,xmax],[ymin,ymax]])
+	extent = [xedges[0], xedges[-1], yedges[0], yedges[-1] ]
+	imshow(hist.T,extent=extent,interpolation='nearest',origin='lower')
+	# colorbar()
+	outputfile = os.path.join(options.outputDir, "map_changes.png")
+	plt.savefig(outputfile)
+
+
 	return 0
 
 
@@ -229,9 +336,15 @@ print "Reading file {0}".format(options.inputFile)
 
 i = 0
 step = -1
+maxstep = 120000000
 for line in fileinput.input(options.inputFile):
+	if i == 0:
+		print line
 	if i > 0:
 		processLine(line, args)
+	if i > maxstep:
+		break
 	i += 1
 
 summariseAnalysis()
+

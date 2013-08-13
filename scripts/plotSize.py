@@ -5,7 +5,7 @@ import fileinput
 from scipy import spatial
 from numpy import * 
 from pylab import *
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.mlab import csv2rec
 
@@ -42,7 +42,7 @@ def plotCVSFile(cvsFileName, delimiterStr):
 	input.close()
 	data = csv2rec(input_filename, delimiter=delimiterStr)
 	
-	# number of vehicles
+# number of vehicles
 	outputfile = options.outputDir + "numberOfVehicles_maxCC.png"
 	plotData(data, 'step', 
 		['vehicles', 'singletons', 'connected', 'max_connected_component_size'], 
@@ -51,87 +51,96 @@ def plotCVSFile(cvsFileName, delimiterStr):
 		['All', 'Singletons', 'Connected', "Max size CC"], 
 		outputfile)
 	
-	# number of vehicles
-	outputfile = options.outputDir + "numberOfVehicles_com.png"
-	plotData(data, 'step', 
-		['vehicles', 'singletons', 'connected', 'in_communities'], 
-		'Step', 
-		'Number of vehicles', 
-		['All', 'Singletons', 'Connected', 'In communities'], 
-		outputfile)
+	# # number of vehicles
+	# outputfile = options.outputDir + "numberOfVehicles_maxCC.png"
+	# plotData(data, 'step', 
+	# 	['vehicles', 'singletons', 'connected', 'max_connected_component_size'], 
+	# 	'Step', 
+	# 	'Number of vehicles', 
+	# 	['All', 'Singletons', 'Connected', "Max size CC"], 
+	# 	outputfile)
+	
+	# # number of vehicles
+	# outputfile = options.outputDir + "numberOfVehicles_com.png"
+	# plotData(data, 'step', 
+	# 	['vehicles', 'singletons', 'connected', 'in_communities'], 
+	# 	'Step', 
+	# 	'Number of vehicles', 
+	# 	['All', 'Singletons', 'Connected', 'In communities'], 
+	# 	outputfile)
 
-	# number of communities and connected components
-	outputfile = options.outputDir + "sizeOfCCandDegree.png"
-	plotData(data, 
-		'step', 
-		['avg_connected_component_size', 'avg_degree', 'max_degree'], 
-		'Step', 
-		'Number', 
-		["Avg size CC", "Average degree", "Max degree"], 
-		outputfile)
+	# # number of communities and connected components
+	# outputfile = options.outputDir + "sizeOfCCandDegree.png"
+	# plotData(data, 
+	# 	'step', 
+	# 	['avg_connected_component_size', 'avg_degree', 'max_degree'], 
+	# 	'Step', 
+	# 	'Number', 
+	# 	["Avg size CC", "Average degree", "Max degree"], 
+	# 	outputfile)
 
-	# number of communities and connected components
-	outputfile = options.outputDir + "sizeOfComAndDegree.png"
-	plotData(data, 
-		'step', 
-		['avg_community_size', 'avg_degree', 'max_degree'], 
-		'Step', 
-		'Number', 
-		["Avg size com", "Average degree", "Max degree"], 
-		outputfile)
+	# # number of communities and connected components
+	# outputfile = options.outputDir + "sizeOfComAndDegree.png"
+	# plotData(data, 
+	# 	'step', 
+	# 	['avg_community_size', 'avg_degree', 'max_degree'], 
+	# 	'Step', 
+	# 	'Number', 
+	# 	["Avg size com", "Average degree", "Max degree"], 
+	# 	outputfile)
 
-	# number of communities and connected components
-	outputfile = options.outputDir + "maxSizeCC.png"
-	plotData(data, 
-		'step', 
-		['connected_components', 'max_connected_component_size'], 
-		'Step', 
-		'Number', 
-		["CC", "Max size CC"], 
-		outputfile)
+	# # number of communities and connected components
+	# outputfile = options.outputDir + "maxSizeCC.png"
+	# plotData(data, 
+	# 	'step', 
+	# 	['connected_components', 'max_connected_component_size'], 
+	# 	'Step', 
+	# 	'Number', 
+	# 	["CC", "Max size CC"], 
+	# 	outputfile)
 
 
-	# number of communities and connected components
-	outputfile = options.outputDir + "numberOfComAndCC.png"
-	plotData(data, 
-		'step', 
-		['communities', 'connected_components', 'singletons'], 
-		'Step', 
-		'Number', 
-		["Communities", "Connected components", "Singletons"], 
-		outputfile)
+	# # number of communities and connected components
+	# outputfile = options.outputDir + "numberOfComAndCC.png"
+	# plotData(data, 
+	# 	'step', 
+	# 	['communities', 'connected_components', 'singletons'], 
+	# 	'Step', 
+	# 	'Number', 
+	# 	["Communities", "Connected components", "Singletons"], 
+	# 	outputfile)
 
-	# number of communities and connected components
-	outputfile = options.outputDir + "numberOfCC.png"
-	plotData(data, 
-		'step', 
-		['connected_components', 'singletons'], 
-		'Step', 
-		'Number', 
-		[ "Connected components", "Singletons"], 
-		outputfile)
+	# # number of communities and connected components
+	# outputfile = options.outputDir + "numberOfCC.png"
+	# plotData(data, 
+	# 	'step', 
+	# 	['connected_components', 'singletons'], 
+	# 	'Step', 
+	# 	'Number', 
+	# 	[ "Connected components", "Singletons"], 
+	# 	outputfile)
 
-	# size of communities and connected components
-	# todo candlestic: min, mediann, mean, max
-	outputfile = options.outputDir + "sizeOfComAndCC.png"
-	plotData(data, 
-		'step', 
-		['avg_community_size','avg_connected_component_size'], 
-		'Step', 
-		'Average size', 
-		["Communities", "Connected components"], 
-		outputfile)
+	# # size of communities and connected components
+	# # todo candlestic: min, mediann, mean, max
+	# outputfile = options.outputDir + "sizeOfComAndCC.png"
+	# plotData(data, 
+	# 	'step', 
+	# 	['avg_community_size','avg_connected_component_size'], 
+	# 	'Step', 
+	# 	'Average size', 
+	# 	["Communities", "Connected components"], 
+	# 	outputfile)
 
-	# max size of communities and connected components
-	# todo candlestic: min, mediann, mean, max
-	outputfile = options.outputDir + "maxSizeOfCommAndCC.png"
-	plotData(data, 
-		'step', 
-		['max_community_size','max_connected_component_size'], 
-		'Step', 
-		'Max size', 
-		["Communities","Connected components"], 
-		outputfile)
+	# # max size of communities and connected components
+	# # todo candlestic: min, mediann, mean, max
+	# outputfile = options.outputDir + "maxSizeOfCommAndCC.png"
+	# plotData(data, 
+	# 	'step', 
+	# 	['max_community_size','max_connected_component_size'], 
+	# 	'Step', 
+	# 	'Max size', 
+	# 	["Communities","Connected components"], 
+	# 	outputfile)
 	
 
 def plotData(data, xlabel, ylabels, xtitle, ytitle, legendTitles, outputfile):
