@@ -23,14 +23,34 @@ class DGSWriter:
 		self.out.write("cn "+str(vehicle['id'])+' x='+str(vehicle['x'])+' y='+str(vehicle['y'])+'\n')
 		return
 
-	def writeAddNode(self, vehicleId, x, y):
-		self.out.write("an "+str(vehicleId)+' x='+str(x)+' y='+str(y)+'\n')
+	def writeAddNode(self, vehicleId, vehicleAttr, x, y):
+		self.out.write("an "+str(vehicleId)+' x='+str(x)+' y='+str(y))
+		for attr in vehicleAttr:
+			attrStr = str(vehicleAttr[attr])
+			if self.isNaN(attrStr):
+				#print("adding quates " + attrStr + " " + str(attrStr.isdigit()));
+				self.out.write(' '+attr+"=\""+str(vehicleAttr[attr])+"\"");
+			else:
+				self.out.write(' '+attr+"="+str(vehicleAttr[attr]));
+		self.out.write(""+'\n')
 		return
 
-	def writeChangeNode(self, vehicleId, x, y):
-		self.out.write("cn "+str(vehicleId)+' x='+str(x)+' y='+str(y)+'\n')
+	def writeChangeNode(self, vehicleId, vehicleAttr, x, y):
+		self.out.write("cn "+str(vehicleId)+' x='+str(x)+' y='+str(y))
+		for attr in vehicleAttr:
+			attrStr = str(vehicleAttr[attr])
+			if self.isNaN(attrStr):
+				#print("adding quates " + attrStr + " " + str(attrStr.isdigit()));
+				self.out.write(' '+attr+"=\""+str(vehicleAttr[attr])+"\"");
+			else:
+				self.out.write(' '+attr+"="+str(vehicleAttr[attr]));
+		self.out.write(""+'\n')
 		return
 
+	def isNaN(self, x):
+	    try: float(x)
+	    except ValueError: return True
+	    return False
 	# def writeAddNode(self, vehicleId, x, y, attrNames, attrValues):
 	# 	self.out.write("an "+str(vehicleId)+' x='+str(x)+' y='+str(y)+'\n')
 	# 	return
@@ -46,7 +66,7 @@ class DGSWriter:
 		self.out.write("dn "+str(vehicleId)+'\n')
 		return
 
-	def writeAddEdge(self, edgeId, node1, node2, weight):
+	def writeAddEdgeWeight(self, edgeId, node1, node2, weight):
 		self.out.write("ae \""+str(edgeId)+'" '+str(node1)+' '+str(node2)+' weight='+str(weight)+'\n')
 		return
 

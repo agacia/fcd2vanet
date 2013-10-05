@@ -29,7 +29,7 @@ stepVehicles = {}
 runningVehicles = {}
 runningEdgesCount = 0
 stepPoints = {}
-
+stepVehiclesAttr = {}
 edgesCount = 0
 nodesCount = 0
 edgesStepCount = 0
@@ -46,7 +46,7 @@ def populateMacMap(elem, args={}):
 	elem = line.split(',')
 	if len(elem) > 5:
 		vehicleId = str(elem[2])
-		vehicleMac = str(elem[5])
+		vehicleMac = str(elem[11])
 		macMap[vehicleMac] = vehicleId
 		mapIdMac[vehicleId] = vehicleMac
 	return 
@@ -103,6 +103,7 @@ def processLine(line, args={}):
 	global currentStep
 	global macMap
 	global stepVehicles
+	global stepVehiclesAttr
 	global stepPoints
 	global runningVehicles
 	global edges 
@@ -114,7 +115,8 @@ def processLine(line, args={}):
 	global countEdgeDistances
 	global runningEdgesCount
 
-	#1 21631 21 23094 21968.5 00:00:00:00:00:16 2 00:00:00:00:00:20,1 00:00:00:00:01:f7,1 
+	#step, time, id, slope, lane, angle, speed, pos, x, y, type, vehicleId, numberOfNeighbors, neighbors
+	#2,21632.0,2,22763.76,19092.69,0.00,-84201885_1,-114.61,22.42,15.60,19092.69,22763.76,porsche,_h5_4352,1,_h5_4416
 	elem = line.split(',')
 	step = float(elem[0])
 	
@@ -123,11 +125,9 @@ def processLine(line, args={}):
 	# write del in dgs
 	if step != currentStep:	
 		currentStep = step
-		
 		dgsWriter.writeStep(step)
 
 		if len(stepVehicles) > 0:
-
 			print "----"
 			print "step: {0}, stepVehicles: {1}, stepPoints: {2}, stepEdges: {3}".format(currentStep, len(stepVehicles), len(stepPoints), edgesStepCount)
 			print "step: {0}, runningVehicles: {1} runningEdges: {2}".format(currentStep, len(runningVehicles), getRunningEdges(runningVehicles))
@@ -142,15 +142,16 @@ def processLine(line, args={}):
 			# if a step vehicle is not in running, add, if is , write change
 			for stepVehicleId,stepVehicleEdges in stepVehicles.iteritems():
 				point = stepPoints[stepVehicleId]
-				
+				vehicleAttr = stepVehiclesAttr[stepVehicleId]
 				# if stepVehicleId == "337" or stepVehicleId == "344":
 				# 	print "step node {0}: {1}".format(stepVehicleId, stepVehicleEdges)
 				if not stepVehicleId in runningVehicles.keys():
 					addedNodesCount += 1
 					runningVehicles[stepVehicleId] = stepVehicleEdges
+					print "vehicleAttr {0} {1}".format(stepVehicleId, vehicleAttr)
 					# wrtie added nodes 
 					# id = mapIdMac(stepVehicleId)
-					dgsWriter.writeAddNode(stepVehicleId, point[0], point[1])
+					dgsWriter.writeAddNode(stepVehicleId, vehicleAttr, point[0], point[1])
 					# remember which edges to add
 					for edgeToAdd in stepVehicleEdges:
 						edgeId = formatEdgeId(stepVehicleId, edgeToAdd)
@@ -159,8 +160,9 @@ def processLine(line, args={}):
 							nodesToAdd.append(edgeToAdd)
 							addedNodesCount += 1
 							point = stepPoints[edgeToAdd]
+							vehicleAttr = stepVehiclesAttr[edgeToAdd]
 							# id = mapIdMac(edgeToAdd)
-							dgsWriter.writeAddNode(edgeToAdd, point[0], point[1])
+							dgsWriter.writeAddNode(edgeToAdd, vehicleAttr, point[0], point[1])
 						if edgeId not in edgesToAdd:
 							edgesToAdd.append(edgeId)
 					runningEdgesCount += len(runningVehicles[stepVehicleId])
@@ -169,7 +171,7 @@ def processLine(line, args={}):
 					# write changed nodes
 					if (stepVehicleId not in nodesToAdd):
 						# id = mapIdMac(stepVehicleId)
-						dgsWriter.writeChangeNode(stepVehicleId, point[0], point[1])
+						dgsWriter.writeChangeNode(stepVehicleId, vehicleAttr, point[0], point[1])
 					
 					# add/delete edges if changed 
 					for newEdge in stepVehicleEdges:
@@ -207,7 +209,7 @@ def processLine(line, args={}):
 				edges = splitEdgeId(edgeId)
 				if len(edges) == 2:
 					distance = calculateDistance(stepPoints[edges[0]], stepPoints[edges[1]])
-					dgsWriter.writeAddEdge(edgeId, edges[0], edges[1])
+					dgsWriter.writeAddEdgeWeight(edgeId, edges[0], edges[1], distance)
 				else:
 					print "Error. EdgeId in wrong format!"
 			# write deleted edges
@@ -236,24 +238,36 @@ def processLine(line, args={}):
 		deletedNodsCount = 0
 
 		stepVehicles = {}
+		stepVehiclesAttr = {}
 		stepPoints = {}
 
 	# record step vehicle information (id, point, edges)
 	# vehicleId = str(elem[2])
-	vehicleId = str(elem[5])
-	vehicleX = float(elem[3])
-	vehicleY = float(elem[4])
-	vehicleMac = str(elem[5])
-	vehicleNumberOfEdges = int(elem[6])
+	#[0]step, 	[1]time, 	[2]id, 	[3]slope, 	[4]lane, 		[5]angle, 	[6]speed, 	[7]pos, 	[8]x, 			[9]y, 			[10]type, 		[11]vehicleId,	[12]numberOfNeighbors, 	[13]neighbors
+	#[0]1, 		[1]21631.0,	[2]2,	[3]0.00,	[4]-9234280_1,	[5]-116.40,	[6]24.66,	[7]85.73,	[8]19076.21,	[9]22800.23,	[10]porsche,	[11]_h5_4352,	[12]1,					[13]_h5_4416
+	
+	vehicleSlope = float(elem[3])
+	vehicleLane = str(elem[4])
+	vehicleAngle = float(elem[5])
+	vehicleSpeed = float(elem[6])
+	vehiclePos = float(elem[7])
+	vehicleId = str(elem[11])
+	vehicleX = float(elem[9])
+	vehicleY = float(elem[8])
+	vehicleMac = str(elem[11])
+	vehicleNumberOfEdges = int(elem[12])
 	vehicleEdges = []
 	for i in range(0,vehicleNumberOfEdges):
-		neighborId = str(elem[7+i]).strip()
+		neighborId = str(elem[13+i]).strip()
 		# if options.fromNS3:
 		# 	neighborId = macMap[elem[7+i]]
 		vehicleEdges.append(neighborId)
 		edgesStepCount += 1
 
+	
 	stepVehicles[vehicleId] = vehicleEdges
+	# print "adding stepVehicle {0} {1} {2}".format(step, vehicleId, vehicleSpeed)
+	stepVehiclesAttr[vehicleId] = {'vehicleSpeed':vehicleSpeed, 'vehicleAngle':vehicleAngle, 'vehicleSlope':vehicleSlope, 'vehicleLane':vehicleLane, 'vehiclePos':vehiclePos}
 	stepPoints[vehicleId] = [vehicleX,vehicleY]
 	
 	return 0

@@ -15,7 +15,7 @@ parser.add_option('--startTime', help=("Start time"), type="int", dest='startTim
 parser.add_option('--endTime', help=("End time"), type="int", dest='endTime')
 parser.add_option('--stepSize', help=("Step size"), type="int", dest='stepSize')
 parser.add_option('--radious', help=("Edge rarious"), type="int", dest='radious')
-
+parser.add_option('--attributes', help=("Xml attributes from fcd file to be extracted to vanets"), type="string", dest='attributes')
 (options, args) = parser.parse_args()
 
 print options
@@ -32,6 +32,7 @@ tagName = 'timestep'
 stepSize = 1
 radious = 100
 allVehicles = []
+attributes = []
 
 # overwrite default values if given
 if options.tagName:
@@ -40,6 +41,8 @@ if options.stepSize:
 	stepSize = options.stepSize
 if options.radious:
 	radious = options.radious
+if options.attributes:
+	attributes = options.attributes.split(',')
 
 def calculateDistance(p0, p1):
 	deltaX = p0[0] - p1[0]
@@ -48,10 +51,12 @@ def calculateDistance(p0, p1):
 	distance = math.sqrt((p0[0] - p1[0])*(p0[0] - p1[0]) + (p0[1] - p1[1])*(p0[1] - p1[1]))
 	return distance
 
+totalveh = 0
+
 def processTimeStep(elem, args={}):
 	"""Processes a time step node with vehicle nodes in xml file."""
 	global allVehicles
-
+	global totalveh
 	timestepAttrs = args['timestepAttrs']
 	vehicleAttrs = args['vehicleAttrs']
 	startTime = float(args["startTime"])
@@ -59,57 +64,52 @@ def processTimeStep(elem, args={}):
 	step = args['step']
 	radious = args['radious']
 	vanetWriter = args['vanetWriter']
-	time = float(elem.attrib['time'])	
+	time = float(elem.attrib['time'])
 	
-	if time >= endTime:
+	if time > endTime:
 		return -1
 	if time >= startTime:
 		stepVehicles = []
 		points = []
-		
+		print ("step " + str(time) + " , vehicles: " + str(len(elem)))
+		totalveh += len(elem)
 		for vehicle in elem:
-			vehicleId = vehicle.attrib['id']
-			stepVehicles.append(vehicleId)
-			if not vehicleId in allVehicles:
-				 allVehicles.append(vehicleId)
+			vehicleElem = {}
+			for attr in vehicleAttrs:
+				vehicleElem[attr] = vehicle.attrib[attr]
+			stepVehicles.append(vehicleElem)
 			points.append((float(vehicle.attrib['x']), float(vehicle.attrib['y'])))
 			
-		# vehicleId = allVehicles[12]
-		# index = stepVehicles.index(vehicleId)
-		# print "{} 12 = {} {}".format(vehicleId, index, points[index])
-		
+			# if not vehicleElem['id'] in allVehicles:
+			# 	 allVehicles.append(vehicleElem['id'])
+			
 		tree = spatial.KDTree(points, 10)
 		
 		# write all vehicles and their edges from the step to the output writer
 		pairs = []
 		i = 0
 		for point in points:
-			vehicleId = stepVehicles[i]
-			vehicleIdInt = allVehicles.index(vehicleId)
+			vehicle = stepVehicles[i]
+			# vehicleIdInt = allVehicles.index(stepVehicles[i]['id'])
+			vehicleIdInt = i
+			# print "vehicleIdInt: {0}, i: {1}".format(vehicleIdInt, i)
 			x = point[0]
 			y = point[1]
-
 			neighbors = tree.query_ball_point(point, radious)
 			neighbors.remove(i)
 			numberOfNeighbors = len(neighbors)
 			neighborsId = []
 			for neighbor in neighbors:
 				distance = calculateDistance(point,points[neighbor])
-				neighborId = stepVehicles[neighbor]
-				# neighborIdInt = allVehicles.index(neighborId)
-				# neighborsIdInt.append(neighborIdInt)
+				neighborId = stepVehicles[neighbor]['id']
 				neighborsId.append(neighborId)
 				# print "{} calculating distance between {}{} and {}{} = {}".format(time,vehicleIdInt,point,neighborIdInt,points[neighbor], distance)
 			# print "neighbors of "+str(i)+"("+str(x)+','+str(y)+"): "+str(neighbors) 
-			vanetWriter.writeVehicle(step, time, vehicleIdInt, x, y, vehicleId, numberOfNeighbors, neighborsId)
+			vanetWriter.writeVehicle(step, time, vehicleIdInt, vehicle, numberOfNeighbors, neighborsId)
 			pairs.extend(neighbors)
 			i = i+1
 		
 		print "step\t" + str(time) + " stepVehicles \t" + str(len(stepVehicles)) + ', edges: ' + str(len(pairs))
-		
-		# check if the same number of edges 
-		# pairs2 = tree.query_pairs(radious)
-		# print str(len(pairs2))
 	
 		return 1
 	return 0
@@ -151,4 +151,4 @@ args['vanetWriter'] = VanetWriter(options.vanetFile)
 
 fastIter(context, processTimeStep, args)
 
-
+print (totalveh)
