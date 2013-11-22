@@ -30,9 +30,9 @@ Features
 
 SUMO2VANET allows to:
 
-(1) `Generate floating car data FCD`_ of any road network with traffic simulator SUMO `SUMO`_ .
+(1) Generate floating car data FCD of any road network with traffic simulator SUMO `SUMO`_ .
 
-(2) `Generate your VANET`_ -a dynamic graph with vehicles as nodes and connections between vehicles as edges. 
+(2) Generate your VANET -a dynamic graph with vehicles as nodes and connections between vehicles as edges. 
 	
 	Edges can be specified based on:
 	
