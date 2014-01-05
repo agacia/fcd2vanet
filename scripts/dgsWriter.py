@@ -27,7 +27,7 @@ class DGSWriter:
 		self.out.write("an "+str(vehicleId)+' x='+str(x)+' y='+str(y))
 		for attr in vehicleAttr:
 			attrStr = str(vehicleAttr[attr])
-			if self.isNaN(attrStr):
+			if self.isNaN(attrStr) or attr=="vehicleLane":
 				#print("adding quates " + attrStr + " " + str(attrStr.isdigit()));
 				self.out.write(' '+attr+"=\""+str(vehicleAttr[attr])+"\"");
 			else:
