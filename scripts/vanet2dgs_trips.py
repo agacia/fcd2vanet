@@ -254,19 +254,23 @@ def processLine(line, args={}):
 		vehicle[index] = int(elem[args["intIndexes"][index]])
 	
 	vehicleEdges = []
+	currentIndex = args["intIndexes"]["vehicleNumberOfEdges"]
 	for i in range(0,vehicle["vehicleNumberOfEdges"]):
-		neighborId = str(elem[args["edgesIndex"]+i]).strip()
+		currentIndex = args["edgesIndex"]+i
+		neighborId = str(elem[currentIndex]).strip()
 		vehicleEdges.append(neighborId)
 		edgesStepCount += 1
-
+	currentIndex += 1
 	vehicleId = vehicle["vehicleId"]
 	stepVehicles[vehicleId] = vehicleEdges
 	stepVehiclesAttr[vehicleId] = {
 		'vehicleSpeed':vehicle["vehicleSpeed"], 'vehicleLane':vehicle["vehicleLane"], 'vehiclePos':vehicle["vehiclePos"]}
 	if "vehicleAngle" in vehicle:
-		stepVehiclesAttr['vehicleAngle'] = vehicle["vehicleAngle"]
-		stepVehiclesAttr['vehicleSlope'] = vehicle["vehicleSlope"]
-		
+		stepVehiclesAttr[vehicleId]['vehicleAngle'] = vehicle["vehicleAngle"]
+		stepVehiclesAttr[vehicleId]['vehicleSlope'] = vehicle["vehicleSlope"]
+	if currentIndex < len(elem):
+		# print "currentIndex: {0},  len(elem)-1: {1}, elem[currentIndex]: {2}".format(currentIndex,  len(elem)-1, elem[currentIndex])
+		stepVehiclesAttr[vehicleId]['vehicleAvgSpeed'] = float(elem[currentIndex])
 	if vehicleId in vehicles: 
 		stepVehiclesAttr[vehicleId]['edges'] = vehicles[vehicleId]['edges']
 	stepPoints[vehicleId] = [vehicle["vehicleX"],vehicle["vehicleY"]]
