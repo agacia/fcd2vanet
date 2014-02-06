@@ -36,7 +36,7 @@ nodesCount = 0
 edgesStepCount = 0
 deletedNodesCount = 0
 addedNodesCount = 0
-
+stop = 1700
 maxEdgeDistance = 0
 sumEdgeDistance = 0
 countEdgeDistances = 0 
@@ -115,10 +115,11 @@ def processLine(line, args={}):
 	global sumEdgeDistance 
 	global countEdgeDistances
 	global runningEdgesCount
-
+	global stop 
 	elem = line.split(args["separator"])
 	step = float(elem[0])
-	
+	if step > stop:
+		return
 	# next step
 	# populate array removedVehicles with vehicles who were in the previous step but are not in the step any more
 	# write del in dgs
@@ -262,18 +263,39 @@ def processLine(line, args={}):
 		edgesStepCount += 1
 	currentIndex += 1
 	vehicleId = vehicle["vehicleId"]
-	stepVehicles[vehicleId] = vehicleEdges
-	stepVehiclesAttr[vehicleId] = {
-		'vehicleSpeed':vehicle["vehicleSpeed"], 'vehicleLane':vehicle["vehicleLane"], 'vehiclePos':vehicle["vehiclePos"]}
+	vehicleAttributes = {
+		'vehicleSpeed':vehicle["vehicleSpeed"], 'vehicleLane':vehicle["vehicleLane"], 'vehiclePos':vehicle["vehiclePos"]
+	}
+	vehicleAngle = -1
+	vehicleSlope = -1
+	vehicleAvgSpeed = -1
+	isValid = True;
+
 	if "vehicleAngle" in vehicle:
-		stepVehiclesAttr[vehicleId]['vehicleAngle'] = vehicle["vehicleAngle"]
-		stepVehiclesAttr[vehicleId]['vehicleSlope'] = vehicle["vehicleSlope"]
+		vehicleAngle = vehicle["vehicleAngle"]
+	if "vehicleSlope" in vehicle:
+		vehicleSlope = vehicle["vehicleSlope"]
 	if currentIndex < len(elem):
 		# print "currentIndex: {0},  len(elem)-1: {1}, elem[currentIndex]: {2}".format(currentIndex,  len(elem)-1, elem[currentIndex])
-		stepVehiclesAttr[vehicleId]['vehicleAvgSpeed'] = float(elem[currentIndex])
-	if vehicleId in vehicles: 
-		stepVehiclesAttr[vehicleId]['edges'] = vehicles[vehicleId]['edges']
-	stepPoints[vehicleId] = [vehicle["vehicleX"],vehicle["vehicleY"]]
+		vehicleAvgSpeed = float(elem[currentIndex])
+		if vehicleAvgSpeed < 0:
+			isValid = False
+		currentIndex += 1
+	if currentIndex < len(elem):
+		# print "currentIndex: {0},  len(elem)-1: {1}, elem[currentIndex]: {2}".format(currentIndex,  len(elem)-1, elem[currentIndex])
+		vehicleAngle = float(elem[currentIndex])
+		currentIndex += 1
+	
+	isValid = True;
+	if isValid:
+		stepVehicles[vehicleId] = vehicleEdges
+		stepVehiclesAttr[vehicleId] = vehicleAttributes
+		stepVehiclesAttr[vehicleId]['vehicleAngle'] = vehicleAngle
+		stepVehiclesAttr[vehicleId]['vehicleSlope'] = vehicleSlope
+		stepVehiclesAttr[vehicleId]['vehicleAvgSpeed'] = vehicleAvgSpeed
+		if vehicleId in vehicles: 
+			stepVehiclesAttr[vehicleId]['edges'] = vehicles[vehicleId]['edges']
+		stepPoints[vehicleId] = [vehicle["vehicleX"],vehicle["vehicleY"]]
 	
 	return 0
 
